@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <!-- Sekcja formularza -->
+  <section class="card section-form">
+    <h2>Parametry Symulacji</h2>
+    <form id="simForm" method="post" action="{{ url_for('index') }}">
+      <div class="form-row">
+        <label for="bit_length">Długość ciągu bitów:</label>
+        <input
+          type="number"
+          id="bit_length"
+          name="bit_length"
+          min="1"
+          required
+          placeholder="np. 50"
+        />
+      </div>
+      <div class="form-row">
+        <label for="snr_db">SNR [dB]:</label>
+        <input
+          type="number"
+          id="snr_db"
+          name="snr_db"
+          min="-50"
+          max="50"
+          step="0.01"
+          required
+          placeholder="np. 2.00"
+        />
+      </div>
+      <div class="form-row">
+        <label for="n_iter">Liczba iteracji:</label>
+        <input
+          type="number"
+          id="n_iter"
+          name="n_iter"
+          min="1"
+          max="20"
+          required
+          placeholder="np. 5"
+        />
+      </div>
+      <div class="form-row form-row-submit">
+        <button type="submit" class="btn-submit">Uruchom symulację</button>
+      </div>
+    </form>
+  </section>
+
+  {% if bits is not none %}
+    <!-- Sekcja: Oryginalny ciąg -->
+    <section class="card section-original">
+      <h2>1) Oryginalny ciąg bitów (liczba bitów - {{ bits|length }}):</h2>
+      <pre class="bit-block">
+{% for b in bits[:50] %}{{ b }}{% if not loop.last %}{% endif %}{% endfor %}{% if bits|length > 50 %}… (łącznie {{ bits|length }}){% endif %}
+      </pre>
+    </section>
+
+    {% if systematic is not none %}
+      <!-- Sekcja: Wyniki Turbo Kodera -->
+      <section class="card section-encoder">
+        <h2>2) Wyniki Turbo Kodera</h2>
+
+        <div class="subsection">
+          <h3>Ciąg systematyczny:</h3>
+          <pre class="bit-block">
+{% for v in systematic[:50] %}{{ v }}{% if not loop.last %}{% endif %}{% endfor %}{% if systematic|length > 50 %}… (łącznie {{ systematic|length }}){% endif %}
+          </pre>
+        </div>
+
+        <div class="subsection">
+          <h3>Ciąg parzystości 1 (Parity1):</h3>
+          <pre class="bit-block">
+{% for v in parity1[:50] %}{{ v }}{% if not loop.last %}{% endif %}{% endfor %}{% if parity1|length > 50 %}… (łącznie {{ parity1|length }}){% endif %}
+          </pre>
+        </div>
+
+        <div class="subsection">
+          <h3>Ciąg parzystości 2 (Parity2):</h3>
+          <pre class="bit-block">
+{% for v in parity2[:50] %}{{ v }}{% if not loop.last %}{% endif %}{% endfor %}{% if parity2|length > 50 %}… (łącznie {{ parity2|length }}){% endif %}
+          </pre>
+        </div>
+
+        <div class="subsection">
+          <h3>Interleaver (wektor permutacji):</h3>
+          <p class="interleaver-block">
+            {% for idx in interleaver[:50] %}{{ idx }}{% if not loop.last %}, {% endif %}{% endfor %}
+            {% if interleaver|length > 50 %}… (łącznie {{ interleaver|length }}){% endif %}
+          </p>
+        </div>
+      </section>
+
+      <!-- Sekcja: BPSK + szum AWGN -->
+      <section class="card section-channel">
+        <h2>3) Modulator BPSK + szum AWGN (SNR = {{ snr_db }} dB)</h2>
+
+        <div class="subsection-row">
+          <div>
+            <h3>Początkowy ciąg systematyczny (BPSK):</h3>
+            <pre class="bit-block">
+{% for v in clean_s[:50] %}{{ v }}{% if not loop.last %}, {% endif %}{% endfor %}{% if clean_s|length > 50 %}… (łącznie {{ clean_s|length }}){% endif %}
+            </pre>
+          </div>
+          <div>
+            <h3>Zaszumiony ciąg systematyczny:</h3>
+            <pre class="bit-block">
+{% for v in y_s[:50] %}{{ '%.2f'|format(v) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if y_s|length > 50 %}… (łącznie {{ y_s|length }}){% endif %}
+            </pre>
+          </div>
+        </div>
+
+        <div class="subsection-row">
+          <div>
+            <h3>Początkowy ciąg parzystości 1 (BPSK):</h3>
+            <pre class="bit-block">
+{% for v in clean_p1[:50] %}{{ v }}{% if not loop.last %}, {% endif %}{% endfor %}{% if clean_p1|length > 50 %}… (łącznie {{ clean_p1|length }}){% endif %}
+            </pre>
+          </div>
+          <div>
+            <h3>Zaszumiony ciąg parzystości 1:</h3>
+            <pre class="bit-block">
+{% for v in y_p1[:50] %}{{ '%.2f'|format(v) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if y_p1|length > 50 %}… (łącznie {{ y_p1|length }}){% endif %}
+            </pre>
+          </div>
+        </div>
+
+        <div class="subsection-row">
+          <div>
+            <h3>Początkowy ciąg parzystości 2 (BPSK):</h3>
+            <pre class="bit-block">
+{% for v in clean_p2[:50] %}{{ v }}{% if not loop.last %}, {% endif %}{% endfor %}{% if clean_p2|length > 50 %}… (łącznie {{ clean_p2|length }}){% endif %}
+            </pre>
+          </div>
+          <div>
+            <h3>Zaszumiony ciąg parzystości 2:</h3>
+            <pre class="bit-block">
+{% for v in y_p2[:50] %}{{ '%.2f'|format(v) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if y_p2|length > 50 %}… (łącznie {{ y_p2|length }}){% endif %}
+            </pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sekcja: Turbo Dekoder i wyniki -->
+      <section class="card section-decoder">
+        <h2>4) Turbo Dekoder (liczba iteracji - {{ n_iter }})</h2>
+
+        <div class="subsection">
+          <h3>Ostateczne LLR:</h3>
+          <pre class="bit-block">
+{% for v in LLR_final[:50] %}{{ '%.2f'|format(v) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if LLR_final|length > 50 %}… (łącznie {{ LLR_final|length }}){% endif %}
+          </pre>
+        </div>
+
+        <div class="subsection">
+          <h3>Decyzje twarde (wynik dekodowania):</h3>
+          <pre class="bit-block">
+{% for b in x_hat[:50] %}{{ b }}{% if not loop.last %}{% endif %}{% endfor %}{% if x_hat|length > 50 %}… (łącznie {{ x_hat|length }}){% endif %}
+          </pre>
+        </div>
+
+        <div class="subsection">
+          <h3>Oryginalny ciąg bitów (dla porównania):</h3>
+          <pre class="bit-block">
+{% for b in bits[:50] %}{{ b }}{% if not loop.last %}{% endif %}{% endfor %}{% if bits|length > 50 %}… (łącznie {{ bits|length }}){% endif %}
+          </pre>
+        </div>
+
+        <div class="subsection">
+          <h3>Wskaźnik błędów bitowych (BER):</h3>
+          <p class="ber-value"><strong>{{ '%.4f'|format(ber) }}</strong> ({{ (ber*100)|round(2) }} %)</p>
+        </div>
+      </section>
+    {% endif %}
+  {% endif %}
+
+  <!-- Overlay ładowania -->
+  <div id="loading-overlay">
+    <div class="loading-content">
+      <div class="spinner"></div>
+        <p> Trwa symulacja... </p>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const form = document.getElementById("simForm");
+      const overlay = document.getElementById("loading-overlay");
+      form.addEventListener("submit", function () {
+        overlay.style.display = "flex";
+      });
+    });
+  </script>
+{% endblock %}
